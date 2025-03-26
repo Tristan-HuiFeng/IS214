@@ -1,0 +1,5 @@
+FROM dpage/pgadmin4:latest
+
+USER root
+
+EXPOSE 80
