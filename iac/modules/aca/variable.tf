@@ -33,3 +33,15 @@ variable "key_vault_id" {
 variable "storage_account_id" {
   type = string
 }
+
+variable "fileshare_name" {
+  type = string
+}
+
+variable "storage_primary_key" {
+  type = string
+}
+
+variable "storage_account_name" {
+  type = string
+}

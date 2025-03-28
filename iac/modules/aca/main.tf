@@ -20,6 +20,16 @@ data "azurerm_key_vault_secret" "p" {
   key_vault_id = var.key_vault_id
 }
 
+data "azurerm_key_vault_secret" "pg_user" {
+  name         = "pg-user"
+  key_vault_id = var.key_vault_id
+}
+
+data "azurerm_key_vault_secret" "pg_password" {
+  name         = "pg-password"
+  key_vault_id = var.key_vault_id
+}
+
 resource "azurerm_log_analytics_workspace" "odoo" {
   name                = "odoo-analytics"
   location            = var.resource_group_location
@@ -56,17 +66,43 @@ resource "azurerm_role_assignment" "kv_odoo" {
   principal_id         = azurerm_user_assigned_identity.odoo.principal_id
 }
 
-resource "azurerm_role_assignment" "fs_odoo" {
-  scope              = var.storage_account_id
-  role_definition_id = "Storage File Data SMB Share Contributor"
-  principal_id       = azurerm_user_assigned_identity.odoo.principal_id
-}
+# resource "azurerm_role_assignment" "fs_odoo" {
+#   scope              = var.storage_account_id
+#   role_definition_id = "Storage File Data SMB Share Contributor"
+#   principal_id       = azurerm_user_assigned_identity.odoo.principal_id
+# }
 
 resource "azurerm_key_vault_access_policy" "app" {
   key_vault_id                = var.key_vault_id
   tenant_id                   = data.azurerm_client_config.current.tenant_id
   object_id                   = azurerm_user_assigned_identity.odoo.principal_id
   secret_permissions          = ["Get", "List"]
+}
+
+# resource "azapi_resource" "storage" {
+#   schema_validation_enabled = false
+#   type                      = "Microsoft.App/managedEnvironments/storages@2022-10-01"
+#   name                      = "shared-storage"
+  
+#   body = jsonencode({
+#     properties = {
+#       azureFile = {
+#         accountKey  = azurerm_storage_account. storage.primary_access_key
+#         accountName = var.fileshare_name
+#         shareName   = azurerm_storage_share.share.name
+#         AccessMode  = "ReadWrite"
+#       }
+#     }
+#   })
+# }
+
+resource "azurerm_container_app_environment_storage" "odoo" {
+  name                         = "odoofs"
+  container_app_environment_id = azurerm_container_app_environment.odoo.id
+  account_name                 = var.storage_account_name
+  share_name                   = var.fileshare_name
+  access_key                   = var.storage_primary_key
+  access_mode                  = "ReadWrite"
 }
 
 resource "azurerm_container_app" "app" {
@@ -78,17 +114,17 @@ resource "azurerm_container_app" "app" {
   revision_mode                = "Multiple"
   template {
 
-    # volume {
-    #   namename = "odoofs"
-
-    #   storage_type = "Azure"
-    # }
+    volume {
+      name = "odoofs"
+      storage_name = azurerm_container_app_environment_storage.odoo.name
+      storage_type = "AzureFile"
+    }
     
     container {
       name   = "odoo-app"
-      image  = "${var.registry_server}/odoo17:v5"
-      cpu    = 1
-      memory = "2Gi"
+      image  = "${var.registry_server}/odoo17:v12"
+      cpu    = 2
+      memory = "4Gi"
       env {
         name  = "HOST"
         value = "odoodb-is214.postgres.database.azure.com"
@@ -110,22 +146,40 @@ resource "azurerm_container_app" "app" {
         secret_name = "db-apppassword"
       }
 
-      # volume_mounts {
-      #   name = "odoofs"
-      #   path = "/mnt/fileshare"
-      # }
+      volume_mounts {
+        name = "odoofs"
+        path = "/mnt"
+      }
 
-      # readiness_probe {
-      #   port                    = 8069
-      #   transport               = "HTTP"
-      #   path                    = "/"
-      #   initial_delay           = 60  
-      #   interval_seconds        = 15
-      #   timeout                 = 5
-      #   success_count_threshold = 1
-      #   failure_count_threshold = 5
-      # }
+      readiness_probe {
+        port                    = 8069
+        transport               = "HTTP"
+        path                    = "/"
+        initial_delay           = 60  
+        interval_seconds        = 15
+        timeout                 = 5
+        success_count_threshold = 1
+        failure_count_threshold = 5
+      }
     }
+
+    custom_scale_rule {
+      name = "cpu-scaling"
+      custom_rule_type = "cpu"
+      metadata = {
+        type = "utilization"
+        value = "60"
+      }
+    }
+
+    http_scale_rule {
+      name = "http-scaling"
+      concurrent_requests = 10
+    }
+
+    min_replicas = 1
+    max_replicas = 10
+    
   }
 
   identity {
@@ -199,7 +253,16 @@ resource "azurerm_container_app" "pgadmin4" {
       cpu    = 1.0
       memory = "2Gi"
 
-
+      env {
+        name  = "PGADMIN_DEFAULT_EMAIL"
+        secret_name = "pg-user"
+        // value = ""
+      }
+      env {
+        name  = "PGADMIN_DEFAULT_PASSWORD"
+        secret_name = "pg-password"
+        // value = ""
+      }
 
       readiness_probe {
         port                    = 80
@@ -228,6 +291,21 @@ resource "azurerm_container_app" "pgadmin4" {
     }
     external_enabled = true
   }
+
+  secret {
+    name  = "pg-user"
+    // value = data.azurerm_key_vault_secret.db_user.value
+    identity = azurerm_user_assigned_identity.odoo.id
+    key_vault_secret_id = data.azurerm_key_vault_secret.pg_user.id
+  }
+
+  secret {
+    name  = "pg-password"
+    // value = data.azurerm_key_vault_secret.db_password.value
+    identity = azurerm_user_assigned_identity.odoo.id
+    key_vault_secret_id = data.azurerm_key_vault_secret.pg_password.id
+  }
+
 
   # secret {
   #   name  = "registry-password"

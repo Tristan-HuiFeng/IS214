@@ -14,6 +14,10 @@ output "app_subnet_id" {
   value = azurerm_subnet.app.id
 }
 
+output "agw_subnet_id" {
+  value = azurerm_subnet.agw.id
+}
+
 output "virtual_network_name" {
   value = azurerm_virtual_network.odoo.name
 }

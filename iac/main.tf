@@ -44,6 +44,9 @@ module "aca" {
   app_subnet_id = module.vnet.app_subnet_id
   key_vault_id = module.akv.key_vault_id
   storage_account_id = module.afs.storage_account_id
+  fileshare_name = module.afs.fileshare_name
+  storage_primary_key = module.afs.primary_access_key
+  storage_account_name = module.afs.storage_account_name
 }
 
 module "adb" {
@@ -62,4 +65,12 @@ module "migration" {
   virutal_network_name = module.vnet.virtual_network_name
   virutal_network_id = module.vnet.virtual_network_id
   db_private_dns_zone_name = module.vnet.db_private_dns_zone_name
+}
+
+module "agw" {
+  source = "./modules/agw"
+  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_location = azurerm_resource_group.rg.location
+  virutal_network_name = module.vnet.virtual_network_name
+  agw_subnet_id = module.vnet.agw_subnet_id
 }

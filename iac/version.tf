@@ -16,8 +16,12 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id   = "edadbcbc-5d10-4546-96ac-c77c475e80a4"
+  subscription_id = "edadbcbc-5d10-4546-96ac-c77c475e80a4"
 }
+
+# provider "azapi" {
+#   subscription_id = "edadbcbc-5d10-4546-96ac-c77c475e80a4"
+# }
 
 resource "azurerm_resource_group" "tfstate" {
   name     = "tfstate"
