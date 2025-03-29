@@ -103,6 +103,7 @@ resource "azurerm_container_app_environment_storage" "odoo" {
   share_name                   = var.fileshare_name
   access_key                   = var.storage_primary_key
   access_mode                  = "ReadWrite"
+
 }
 
 resource "azurerm_container_app" "app" {

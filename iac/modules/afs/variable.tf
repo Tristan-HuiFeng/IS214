@@ -5,3 +5,7 @@ variable "resource_group_name" {
 variable "resource_group_location" {
   type = string
 }
+
+variable "virtual_network_subnet_id" {
+  type = string
+}

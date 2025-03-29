@@ -22,6 +22,7 @@ module "afs" {
   source = "./modules/afs"
   resource_group_name = azurerm_resource_group.rg.name
   resource_group_location = azurerm_resource_group.rg.location
+  virtual_network_subnet_id = module.vnet.app_subnet_id
 }
 
 module "vnet" {
