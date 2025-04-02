@@ -15,7 +15,7 @@ resource "azurerm_storage_account" "odoo" {
 resource "azurerm_storage_share" "filestore" {
   name                 = "odoo-smb"
   storage_account_id  = azurerm_storage_account.odoo.id
-  quota                = 10000
+  quota                = 100000
   access_tier = "Premium"
 
   acl {
