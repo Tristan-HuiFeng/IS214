@@ -17,6 +17,8 @@ jobs:
       contents: read
       security-events: write
       actions: read
+      id-token: write
+      contents: read
 
     runs-on: ubuntu-latest
     steps:

@@ -16,7 +16,7 @@ resource "azurerm_network_security_group" "db" {
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
-    source_port_range          = "*"
+    source_port_range          = "5432"
     destination_port_range     = "*"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
@@ -92,12 +92,12 @@ resource "azurerm_network_security_group" "app" {
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "*"
+    destination_port_range     = "443"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
-    security_rule {
+  security_rule {
     name                       = "odoo-sg-app-outbound"
     priority                   = 100
     direction                  = "Outbound"
