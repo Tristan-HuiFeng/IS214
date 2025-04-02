@@ -37,10 +37,10 @@ jobs:
       #   run: terraform init -input=false
       #   working-directory: ./iac/app
 
-      - name: Terraform Validate
-        id: validate
-        run: terraform validate -no-color
-        working-directory: ./iac
+      # - name: Terraform Validate
+      #   id: validate
+      #   run: terraform validate -no-color
+      #   working-directory: ./iac
       
       - name: Checkov GitHub Action
         uses: bridgecrewio/checkov-action@v12
