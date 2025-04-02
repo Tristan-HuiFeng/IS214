@@ -41,4 +41,4 @@ terraform.rc
 
 **/tfplan
 
-.env
+**.env
