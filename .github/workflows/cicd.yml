@@ -3,7 +3,8 @@ run-name: cicd by ${{ github.actor }}
 on:
   push:
     branches: [ "main" ]
-
+  pull_request:
+    types: [opened, synchronize]
 jobs:
   # build:
   #   runs-on: ubuntu-latest
