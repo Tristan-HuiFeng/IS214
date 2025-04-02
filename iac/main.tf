@@ -68,10 +68,10 @@ module "migration" {
   db_private_dns_zone_name = module.vnet.db_private_dns_zone_name
 }
 
-module "agw" {
-  source = "./modules/agw"
-  resource_group_name = azurerm_resource_group.rg.name
-  resource_group_location = azurerm_resource_group.rg.location
-  virutal_network_name = module.vnet.virtual_network_name
-  agw_subnet_id = module.vnet.agw_subnet_id
-}
+# module "agw" {
+#   source = "./modules/agw"
+#   resource_group_name = azurerm_resource_group.rg.name
+#   resource_group_location = azurerm_resource_group.rg.location
+#   virutal_network_name = module.vnet.virtual_network_name
+#   agw_subnet_id = module.vnet.agw_subnet_id
+# }

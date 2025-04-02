@@ -1,0 +1,91 @@
+name: CICD
+run-name: cicd by ${{ github.actor }}
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # build:
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: checkout
+  #       uses: actions/checkout@v4
+    
+  terraform-check:
+    contents: read
+    security-events: write
+    actions: read
+
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+        working-directory: ./iac
+
+      # - name: Terraform Init
+      #   id: init
+      #   run: terraform init -input=false
+      #   working-directory: ./iac/app
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        working-directory: ./iac
+      
+      - name: Checkov GitHub Action
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          output_format: cli,sarif
+          output_file_path: console,results.sarif
+    
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+
+        if: success() || failure()
+        with:
+          sarif_file: results.sarif
+      # - name: Terraform Plan
+      #   id: plan
+      #   run: terraform plan -out tfplan -no-color -input=false
+      #   continue-on-error: false
+      #   working-directory: ./iac/app
+      
+      # - name: Terraform Apply
+      #   id: apply
+      #   run: terraform apply tfplan
+      #   working-directory: ./iac/app
+
+  infra-cost:
+    infracost-default-branch-update:
+    # If you use private modules, or store Terraform variables or modules in a 3rd party
+    # such as TFC or Spacelift, include the same steps/variables as the infracost-pull-request-checks job
+    name: Infracost Default Branch Update
+    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Checkout main/master branch
+        uses: actions/checkout@v4
+
+      - name: Run Infracost on default branch and update Infracost Cloud
+        run: |
+          infracost breakdown --path=./iac \
+                    --format=json \
+                    --out-file=infracost.json
+
+          infracost upload --path=infracost.json || echo "Always pass main branch runs even if there are policy failures"

@@ -73,17 +73,17 @@ resource "azurerm_role_assignment" "kv_odoo" {
 # }
 
 resource "azurerm_key_vault_access_policy" "app" {
-  key_vault_id                = var.key_vault_id
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  object_id                   = azurerm_user_assigned_identity.odoo.principal_id
-  secret_permissions          = ["Get", "List"]
+  key_vault_id       = var.key_vault_id
+  tenant_id          = data.azurerm_client_config.current.tenant_id
+  object_id          = azurerm_user_assigned_identity.odoo.principal_id
+  secret_permissions = ["Get", "List"]
 }
 
 # resource "azapi_resource" "storage" {
 #   schema_validation_enabled = false
 #   type                      = "Microsoft.App/managedEnvironments/storages@2022-10-01"
 #   name                      = "shared-storage"
-  
+
 #   body = jsonencode({
 #     properties = {
 #       azureFile = {
@@ -116,14 +116,14 @@ resource "azurerm_container_app" "app" {
   template {
 
     volume {
-      name = "odoofs"
+      name         = "odoofs"
       storage_name = azurerm_container_app_environment_storage.odoo.name
       storage_type = "AzureFile"
     }
-    
+
     container {
       name   = "odoo-app"
-      image  = "${var.registry_server}/odoo17:v12"
+      image  = "${var.registry_server}/odoo17:v14"
       cpu    = 2
       memory = "4Gi"
       env {
@@ -139,11 +139,11 @@ resource "azurerm_container_app" "app" {
       #   value = ""
       # }
       env {
-        name  = "USER"
+        name        = "USER"
         secret_name = "db-appuser"
       }
       env {
-        name  = "PASSWORD"
+        name        = "PASSWORD"
         secret_name = "db-apppassword"
       }
 
@@ -155,32 +155,42 @@ resource "azurerm_container_app" "app" {
       readiness_probe {
         port                    = 8069
         transport               = "HTTP"
-        path                    = "/"
-        initial_delay           = 60  
-        interval_seconds        = 15
-        timeout                 = 5
+        path                    = "/web/database/selector"
+        initial_delay           = 60
+        interval_seconds        = 60
+        timeout                 = 30
         success_count_threshold = 1
-        failure_count_threshold = 5
+        failure_count_threshold = 3
+      }
+
+      liveness_probe {
+        port                    = 8069
+        transport               = "HTTP"
+        path                    = "/web/database/selector"
+        initial_delay           = 60
+        interval_seconds        = 60
+        timeout                 = 30
+        failure_count_threshold = 3
       }
     }
 
     custom_scale_rule {
-      name = "cpu-scaling"
+      name             = "cpu-scaling"
       custom_rule_type = "cpu"
       metadata = {
-        type = "utilization"
+        type  = "utilization"
         value = "60"
       }
     }
 
     http_scale_rule {
-      name = "http-scaling"
-      concurrent_requests = 10
+      name                = "http-scaling"
+      concurrent_requests = 15
     }
 
     min_replicas = 1
     max_replicas = 10
-    
+
   }
 
   identity {
@@ -204,16 +214,16 @@ resource "azurerm_container_app" "app" {
   }
 
   secret {
-    name  = "db-appuser"
+    name = "db-appuser"
     // value = data.azurerm_key_vault_secret.db_user.value
-    identity = azurerm_user_assigned_identity.odoo.id
+    identity            = azurerm_user_assigned_identity.odoo.id
     key_vault_secret_id = data.azurerm_key_vault_secret.appuser.id
   }
 
   secret {
-    name  = "db-apppassword"
+    name = "db-apppassword"
     // value = data.azurerm_key_vault_secret.db_password.value
-    identity = azurerm_user_assigned_identity.odoo.id
+    identity            = azurerm_user_assigned_identity.odoo.id
     key_vault_secret_id = data.azurerm_key_vault_secret.apppassword.id
   }
 
@@ -224,17 +234,17 @@ resource "azurerm_container_app" "app" {
     # password_secret_name = "registry-password"
   }
 
-    secret {
-    name  = "db-user"
+  secret {
+    name = "db-user"
     // value = data.azurerm_key_vault_secret.db_password.value
-    identity = azurerm_user_assigned_identity.odoo.id
+    identity            = azurerm_user_assigned_identity.odoo.id
     key_vault_secret_id = data.azurerm_key_vault_secret.u.id
   }
 
   secret {
-    name  = "odoo-password"
+    name = "odoo-password"
     // value = data.azurerm_key_vault_secret.db_password.value
-    identity = azurerm_user_assigned_identity.odoo.id
+    identity            = azurerm_user_assigned_identity.odoo.id
     key_vault_secret_id = data.azurerm_key_vault_secret.p.id
   }
 
@@ -255,26 +265,26 @@ resource "azurerm_container_app" "pgadmin4" {
       memory = "2Gi"
 
       env {
-        name  = "PGADMIN_DEFAULT_EMAIL"
+        name        = "PGADMIN_DEFAULT_EMAIL"
         secret_name = "pg-user"
         // value = ""
       }
       env {
-        name  = "PGADMIN_DEFAULT_PASSWORD"
+        name        = "PGADMIN_DEFAULT_PASSWORD"
         secret_name = "pg-password"
         // value = ""
       }
 
-      readiness_probe {
-        port                    = 80
-        transport               = "HTTP"
-        path                    = "/misc/ping"
-        initial_delay           = 60
-        interval_seconds        = 15
-        timeout                 = 5
-        success_count_threshold = 1
-        failure_count_threshold = 5
-      }
+      # readiness_probe {
+      #   port                    = 80
+      #   transport               = "HTTP"
+      #   path                    = "/misc/ping"
+      #   initial_delay           = 60
+      #   interval_seconds        = 15
+      #   timeout                 = 5
+      #   success_count_threshold = 1
+      #   failure_count_threshold = 5
+      # }
     }
   }
 
@@ -294,16 +304,16 @@ resource "azurerm_container_app" "pgadmin4" {
   }
 
   secret {
-    name  = "pg-user"
+    name = "pg-user"
     // value = data.azurerm_key_vault_secret.db_user.value
-    identity = azurerm_user_assigned_identity.odoo.id
+    identity            = azurerm_user_assigned_identity.odoo.id
     key_vault_secret_id = data.azurerm_key_vault_secret.pg_user.id
   }
 
   secret {
-    name  = "pg-password"
+    name = "pg-password"
     // value = data.azurerm_key_vault_secret.db_password.value
-    identity = azurerm_user_assigned_identity.odoo.id
+    identity            = azurerm_user_assigned_identity.odoo.id
     key_vault_secret_id = data.azurerm_key_vault_secret.pg_password.id
   }
 
