@@ -331,3 +331,27 @@ resource "azurerm_container_app" "pgadmin4" {
   }
 
 }
+
+
+resource "azurerm_monitor_metric_alert" "app_replica" {
+  name                = "container-app-replica-alert"
+  resource_group_name = var.resource_group_name
+  description         = "Alert when container app replicas are 0"
+  severity            = 0 # Severity can be 0 (Critical), 1 (Error), 2 (Warning), 3 (Informational)
+  enabled             = true
+
+  scopes = [azurerm_container_app.app.id] # Reference to your Azure Container App
+
+  criteria {
+    metric_namespace = "Microsoft.App/containerApps"
+    metric_name      = "Replicas"
+    aggregation      = "Maximum"
+    operator         = "LessThan"
+    threshold        = 1
+  }
+
+  action {
+    action_group_id = "/subscriptions/EDADBCBC-5D10-4546-96AC-C77C475E80A4/resourceGroups/odoo-rg/providers/microsoft.insights/actionGroups/alert" # Define your action group for notifications
+  }
+
+}
