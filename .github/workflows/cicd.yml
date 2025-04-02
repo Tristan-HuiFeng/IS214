@@ -68,7 +68,6 @@ jobs:
       #   working-directory: ./iac/app
 
   infra-cost:
-    infracost-default-branch-update:
     # If you use private modules, or store Terraform variables or modules in a 3rd party
     # such as TFC or Spacelift, include the same steps/variables as the infracost-pull-request-checks job
     name: Infracost Default Branch Update
